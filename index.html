@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeatMatch - Music Recommendation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #8a2be2;
+            --secondary: #00bfff;
+            --dark: #121212;
+            --light: #f5f5f5;
+            --accent: #ff4081;
+            --success: #4caf50;
+            --spotify-green: #1DB954;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark) 0%, #1a1a2e 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite alternate;
+            display: inline-block;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 2rem;
+        }
+
+        .search-container {
+            display: flex;
+            max-width: 600px;
+            margin: 0 auto 3rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 50px 0 0 50px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: var(--light);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.5);
+        }
+
+        .search-btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0 50px 50px 0;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.7);
+        }
+
+        .results-container {
+            display: none;
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.5s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        .song-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .song-art {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1.5rem;
+            font-size: 2rem;
+            animation: rotate 20s linear infinite;
+        }
+
+        .song-details h2 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .song-details p {
+            opacity: 0.8;
+        }
+
+        .recommendations h3 {
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            color: var(--secondary);
+        }
+
+        .song-list {
+            list-style: none;
+        }
+
+        .song-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            animation: slideIn 0.5s ease;
+        }
+
+        .song-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(10px);
+        }
+
+        .song-item:nth-child(1) { animation-delay: 0.1s; }
+        .song-item:nth-child(2) { animation-delay: 0.2s; }
+        .song-item:nth-child(3) { animation-delay: 0.3s; }
+
+        .song-rank {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-weight: bold;
+        }
+
+        .song-meta {
+            flex: 1;
+        }
+
+        .song-meta h4 {
+            font-size: 1.2rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .song-meta p {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .similarity-score {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 2rem;
+            color: var(--accent);
+            font-size: 1.2rem;
+            display: none;
+        }
+
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .floating-element {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+            opacity: 0.5;
+            animation: float 15s infinite linear;
+        }
+
+        .floating-element:nth-child(2n) {
+            background: var(--secondary);
+            width: 15px;
+            height: 15px;
+        }
+
+        .floating-element:nth-child(3n) {
+            background: var(--accent);
+            width: 8px;
+            height: 8px;
+        }
+
+        .songs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .song-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            animation: fadeIn 0.5s ease;
+            position: relative;
+        }
+
+        .song-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .song-card-art {
+            width: 100%;
+            height: 150px;
+            border-radius: 10px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+        }
+
+        .song-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .song-card p {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            margin: 3rem 0 1.5rem;
+            text-align: center;
+            color: var(--secondary);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            0% { opacity: 0; transform: translateX(-20px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(-1000px) rotate(720deg); }
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .visualizer {
+            width: 100%;
+            height: 150px;
+            margin: 2rem 0;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .visualizer-bar {
+            position: absolute;
+            bottom: 0;
+            width: 8px;
+            background: linear-gradient(to top, var(--primary), var(--secondary));
+            border-radius: 4px 4px 0 0;
+            animation: visualizer 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes visualizer {
+            0% { height: 20%; }
+            100% { height: 100%; }
+        }
+
+        .genre-tag {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .energy-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .energy-level {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding: 2rem 0;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        /* NEW STYLES FOR ADDED FEATURES */
+        
+        /* Music Player */
+        .music-player {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            display: none;
+            z-index: 100;
+            animation: slideUp 0.5s ease;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .player-art {
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .player-details h4 {
+            font-size: 1rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .player-details p {
+            opacity: 0.7;
+            font-size: 0.8rem;
+        }
+
+        .player-buttons {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .player-btn {
+            background: none;
+            border: none;
+            color: var(--light);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .player-btn:hover {
+            color: var(--secondary);
+            transform: scale(1.1);
+        }
+
+        .play-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin: 0 1rem;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        /* Playlist */
+        .playlist-section {
+            margin-top: 3rem;
+            display: none;
+        }
+
+        .playlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .playlist-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .playlist-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .playlist-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .playlist-btn.primary {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+        }
+
+        .playlist {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+            min-height: 200px;
+        }
+
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .playlist-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .playlist-item-index {
+            width: 25px;
+            text-align: center;
+            margin-right: 1rem;
+            opacity: 0.7;
+        }
+
+        .playlist-item-details {
+            flex: 1;
+        }
+
+        .playlist-item-details h4 {
+            font-size: 1rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .playlist-item-details p {
+            opacity: 0.7;
+            font-size: 0.8rem;
+        }
+
+        .playlist-item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .playlist-action-btn {
+            background: none;
+            border: none;
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .playlist-action-btn:hover {
+            color: var(--accent);
+        }
+
+        /* Social Sharing */
+        .social-sharing {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .social-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-5px);
+            background: var(--primary);
+        }
+
+        /* Export Options */
+        .export-options {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .export-btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .export-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+
+        /* Song Actions */
+        .song-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .action-btn:hover {
+            color: var(--secondary);
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            background: var(--success);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            animation: slideInRight 0.5s ease, fadeOut 0.5s ease 2.5s forwards;
+            display: none;
+        }
+
+        /* Spotify Integration */
+        .spotify-section {
+            margin-top: 3rem;
+            text-align: center;
+        }
+
+        .spotify-player {
+            margin: 2rem auto;
+            max-width: 800px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.8s ease;
+        }
+
+        .spotify-connect {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .spotify-btn {
+            background: var(--spotify-green);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .spotify-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(29, 185, 84, 0.5);
+        }
+
+        .spotify-search {
+            display: flex;
+            gap: 1rem;
+            margin: 2rem auto;
+            max-width: 600px;
+        }
+
+        .spotify-search input {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            outline: none;
+        }
+
+        .spotify-search button {
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            background: var(--spotify-green);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .spotify-search button:hover {
+            transform: scale(1.05);
+        }
+
+        .spotify-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .spotify-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .spotify-track:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .spotify-track img {
+            width: 100%;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .spotify-track h4 {
+            font-size: 1rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .spotify-track p {
+            opacity: 0.7;
+            font-size: 0.8rem;
+        }
+
+        @keyframes slideUp {
+            0% { transform: translateY(100%); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes slideInRight {
+            0% { transform: translateX(100%); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2.5rem;
+            }
+            
+            .search-container {
+                flex-direction: column;
+            }
+            
+            .search-input {
+                border-radius: 50px;
+                margin-bottom: 1rem;
+            }
+            
+            .search-btn {
+                border-radius: 50px;
+            }
+            
+            .song-info {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .song-art {
+                margin-right: 0;
+                margin-bottom: 1rem;
+            }
+
+            .player-controls {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .progress-bar {
+                width: 100%;
+                margin: 0.5rem 0;
+            }
+
+            .spotify-search {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-elements" id="floatingElements"></div>
+    
+    <div class="container">
+        <header>
+            <h1 class="logo">BeatMatch</h1>
+            <p class="tagline">Discover your next favorite song with AI-powered recommendations</p>
+            
+            <div class="search-container">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search for a song...">
+                <button class="search-btn" id="searchBtn">Find Recommendations</button>
+            </div>
+        </header>
+        
+        <div class="error-message" id="errorMessage">
+            ❌ Song not found in our database!
+        </div>
+        
+        <div class="results-container" id="resultsContainer">
+            <div class="song-info">
+                <div class="song-art">♪</div>
+                <div class="song-details">
+                    <h2 id="songTitle">Song Title</h2>
+                    <p id="songArtist">Artist Name</p>
+                    <div id="songGenre" class="genre-tag">Genre</div>
+                    <div class="energy-bar">
+                        <div class="energy-level" id="energyLevel"></div>
+                    </div>
+                    <div class="song-actions">
+                        <button class="action-btn" id="playSongBtn">
+                            <i class="fas fa-play"></i> Play Preview
+                        </button>
+                        <button class="action-btn" id="addToPlaylistBtn">
+                            <i class="fas fa-plus"></i> Add to Playlist
+                        </button>
+                        <button class="action-btn" id="findOnSpotifyBtn">
+                            <i class="fab fa-spotify"></i> Find on Spotify
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualizer" id="visualizer"></div>
+            
+            <div class="recommendations">
+                <h3>Recommended for you:</h3>
+                <ul class="song-list" id="songList">
+                    <!-- Recommendations will be added here -->
+                </ul>
+            </div>
+
+            <div class="social-sharing">
+                <a href="#" class="social-btn" id="shareTwitter">
+                    <i class="fab fa-twitter"></i>
+                </a>
+                <a href="#" class="social-btn" id="shareFacebook">
+                    <i class="fab fa-facebook-f"></i>
+                </a>
+                <a href="#" class="social-btn" id="shareWhatsapp">
+                    <i class="fab fa-whatsapp"></i>
+                </a>
+                <a href="#" class="social-btn" id="shareLink">
+                    <i class="fas fa-link"></i>
+                </a>
+            </div>
+
+            <div class="export-options">
+                <button class="export-btn" id="exportJson">
+                    <i class="fas fa-file-code"></i> Export as JSON
+                </button>
+                <button class="export-btn" id="exportCsv">
+                    <i class="fas fa-file-csv"></i> Export as CSV
+                </button>
+                <button class="export-btn" id="exportText">
+                    <i class="fas fa-file-alt"></i> Export as Text
+                </button>
+            </div>
+        </div>
+        
+        <!-- Spotify Integration Section -->
+        <div class="spotify-section" id="spotifySection">
+            <h2 class="section-title">Spotify Integration</h2>
+            
+            <div class="spotify-connect">
+                <h3>Connect to Spotify</h3>
+                <p>Connect your Spotify account to play full songs and access your playlists</p>
+                <button class="spotify-btn" id="connectSpotifyBtn">
+                    <i class="fab fa-spotify"></i> Connect with Spotify
+                </button>
+                <div class="spotify-player" id="spotifyPlayer">
+                    <!-- Spotify player will be embedded here -->
+                </div>
+            </div>
+            
+            <div class="spotify-search">
+                <input type="text" id="spotifySearchInput" placeholder="Search for songs on Spotify...">
+                <button id="spotifySearchBtn">Search</button>
+            </div>
+            
+            <div class="spotify-results" id="spotifyResults">
+                <!-- Spotify search results will be displayed here -->
+            </div>
+        </div>
+        
+        <div class="playlist-section" id="playlistSection">
+            <div class="playlist-header">
+                <h2 class="section-title">Your Playlist</h2>
+                <div class="playlist-actions">
+                    <button class="playlist-btn" id="clearPlaylistBtn">
+                        <i class="fas fa-trash"></i> Clear Playlist
+                    </button>
+                    <button class="playlist-btn primary" id="playPlaylistBtn">
+                        <i class="fas fa-play"></i> Play Playlist
+                    </button>
+                    <button class="playlist-btn" id="saveToSpotifyBtn">
+                        <i class="fab fa-spotify"></i> Save to Spotify
+                    </button>
+                </div>
+            </div>
+            <div class="playlist" id="playlist">
+                <!-- Playlist items will be added here -->
+                <p style="text-align: center; opacity: 0.7; padding: 2rem;">Your playlist is empty. Add songs to get started!</p>
+            </div>
+        </div>
+        
+        <h2 class="section-title">Browse All Songs</h2>
+        <div class="songs-grid" id="songsGrid">
+            <!-- Song cards will be added here -->
+        </div>
+        
+        <footer>
+            <p>BeatMatch &copy; 2023 | AI-Powered Music Discovery</p>
+        </footer>
+    </div>
+
+    <!-- Music Player -->
+    <div class="music-player" id="musicPlayer">
+        <div class="player-controls">
+            <div class="player-info">
+                <div class="player-art">♪</div>
+                <div class="player-details">
+                    <h4 id="playerTitle">Song Title</h4>
+                    <p id="playerArtist">Artist Name</p>
+                </div>
+            </div>
+            <div class="player-buttons">
+                <button class="player-btn" id="prevBtn">
+                    <i class="fas fa-step-backward"></i>
+                </button>
+                <button class="player-btn play-btn" id="playPauseBtn">
+                    <i class="fas fa-play" id="playIcon"></i>
+                </button>
+                <button class="player-btn" id="nextBtn">
+                    <i class="fas fa-step-forward"></i>
+                </button>
+            </div>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress" id="progress"></div>
+            </div>
+            <div class="player-buttons">
+                <button class="player-btn" id="closePlayerBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">Song added to playlist!</div>
+
+    <script>
+        // Song dataset
+        const songs = [
+            { "name": "Shape of You", "artist": "Ed Sheeran", "genre": "Pop", "energy": 0.8 },
+            { "name": "Believer", "artist": "Imagine Dragons", "genre": "Rock", "energy": 0.9 },
+            { "name": "Perfect", "artist": "Ed Sheeran", "genre": "Pop", "energy": 0.6 },
+            { "name": "Senorita", "artist": "Shawn Mendes", "genre": "Pop", "energy": 0.7 },
+            { "name": "Bad Guy", "artist": "Billie Eilish", "genre": "Electropop", "energy": 0.5 },
+            { "name": "Thunder", "artist": "Imagine Dragons", "genre": "Rock", "energy": 0.85 },
+            { "name": "Blinding Lights", "artist": "The Weeknd", "genre": "Synthpop", "energy": 0.9 },
+            { "name": "Happier", "artist": "Marshmello", "genre": "EDM", "energy": 0.65 },
+            { "name": "Lovely", "artist": "Billie Eilish", "genre": "Indie", "energy": 0.4 },
+            { "name": "Attention", "artist": "Charlie Puth", "genre": "Pop", "energy": 0.7 }
+        ];
+
+        // Genre mapping
+        const genreMap = {
+            "Pop": 1,
+            "Rock": 2,
+            "Electropop": 3,
+            "EDM": 4,
+            "Indie": 5,
+            "Synthpop": 6
+        };
+
+        // Add features to songs
+        songs.forEach(song => {
+            song.genre_num = genreMap[song.genre];
+            song.features = [song.energy, song.genre_num];
+        });
+
+        // State variables
+        let currentSong = null;
+        let isPlaying = false;
+        let progressInterval = null;
+        let currentProgress = 0;
+        let playlist = [];
+        let currentPlaylistIndex = 0;
+        let spotifyConnected = false;
+
+        // Spotify track IDs for demo (these would normally come from the Spotify API)
+        const spotifyTrackIds = {
+            "Shape of You": "0FE9t6xYkqWXU2ahLh6D8X",
+            "Believer": "0pqnGHJpmpxLKifKRmU6WP",
+            "Perfect": "0tgVpDi06FyKpA1z0VMD4v",
+            "Senorita": "6v3KW9xbzN5yKLt9YKDYA2",
+            "Bad Guy": "2Fxmhks0bxGSBdJ92vM42m",
+            "Thunder": "3P2gmNQgpUFCYLKfM3mM5m",
+            "Blinding Lights": "0VjIjW4GlUZAMYd2vXMi3b",
+            "Happier": "2dqC1qP6mPQMKQEEZM3dk4",
+            "Lovely": "0u2P5u6lvoDfwTYjAADbn4",
+            "Attention": "4iLqG9SeJSnt0cSPICSjxv"
+        };
+
+        // Cosine similarity function
+        function cosineSimilarity(a, b) {
+            const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
+            const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+            const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+            return dotProduct / (magnitudeA * magnitudeB);
+        }
+
+        // Recommendation function
+        function recommend(songName, topN = 3) {
+            const targetSong = songs.find(song => 
+                song.name.toLowerCase() === songName.toLowerCase()
+            );
+            
+            if (!targetSong) {
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('resultsContainer').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('errorMessage').style.display = 'none';
+            
+            // Update song info
+            document.getElementById('songTitle').textContent = targetSong.name;
+            document.getElementById('songArtist').textContent = targetSong.artist;
+            document.getElementById('songGenre').textContent = targetSong.genre;
+            document.getElementById('energyLevel').style.width = `${targetSong.energy * 100}%`;
+            
+            // Set current song for player
+            currentSong = targetSong;
+            
+            // Calculate similarities
+            const similarities = [];
+            
+            songs.forEach(other => {
+                if (other === targetSong) return;
+                
+                const sim = cosineSimilarity(targetSong.features, other.features);
+                similarities.push({ song: other, similarity: sim });
+            });
+            
+            // Sort by similarity
+            similarities.sort((a, b) => b.similarity - a.similarity);
+            
+            // Display top N recommendations
+            const songList = document.getElementById('songList');
+            songList.innerHTML = '';
+            
+            similarities.slice(0, topN).forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'song-item';
+                li.innerHTML = `
+                    <div class="song-rank">${index + 1}</div>
+                    <div class="song-meta">
+                        <h4>${item.song.name}</h4>
+                        <p>${item.song.artist} • ${item.song.genre}</p>
+                    </div>
+                    <div class="similarity-score">${item.similarity.toFixed(2)}</div>
+                `;
+                
+                // Add click event to recommendation items
+                li.addEventListener('click', () => {
+                    recommend(item.song.name);
+                    document.getElementById('searchInput').value = item.song.name;
+                });
+                
+                songList.appendChild(li);
+            });
+            
+            // Show results container
+            document.getElementById('resultsContainer').style.display = 'block';
+            
+            // Create visualizer bars
+            createVisualizer();
+        }
+
+        // Create floating elements
+        function createFloatingElements() {
+            const container = document.getElementById('floatingElements');
+            for (let i = 0; i < 50; i++) {
+                const element = document.createElement('div');
+                element.className = 'floating-element';
+                element.style.left = `${Math.random() * 100}%`;
+                element.style.animationDuration = `${15 + Math.random() * 20}s`;
+                element.style.animationDelay = `${Math.random() * 5}s`;
+                container.appendChild(element);
+            }
+        }
+
+        // Create visualizer bars
+        function createVisualizer() {
+            const visualizer = document.getElementById('visualizer');
+            visualizer.innerHTML = '';
+            
+            for (let i = 0; i < 40; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'visualizer-bar';
+                bar.style.left = `${i * 2.5}%`;
+                bar.style.animationDelay = `${i * 0.05}s`;
+                visualizer.appendChild(bar);
+            }
+        }
+
+        // Populate song grid
+        function populateSongGrid() {
+            const grid = document.getElementById('songsGrid');
+            grid.innerHTML = '';
+            
+            songs.forEach(song => {
+                const card = document.createElement('div');
+                card.className = 'song-card';
+                card.innerHTML = `
+                    <div class="song-card-art">♪</div>
+                    <h3>${song.name}</h3>
+                    <p>${song.artist}</p>
+                    <div class="genre-tag">${song.genre}</div>
+                    <div class="energy-bar">
+                        <div class="energy-level" style="width: ${song.energy * 100}%"></div>
+                    </div>
+                    <div class="song-actions">
+                        <button class="action-btn play-song-btn" data-song="${song.name}">
+                            <i class="fas fa-play"></i> Play
+                        </button>
+                        <button class="action-btn add-to-playlist-btn" data-song="${song.name}">
+                            <i class="fas fa-plus"></i> Add to Playlist
+                        </button>
+                        <button class="action-btn find-on-spotify-btn" data-song="${song.name}">
+                            <i class="fab fa-spotify"></i> Spotify
+                        </button>
+                    </div>
+                `;
+                
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('.action-btn')) {
+                        recommend(song.name);
+                        document.getElementById('searchInput').value = song.name;
+                    }
+                });
+                
+                grid.appendChild(card);
+            });
+        }
+
+        // Play song function
+        function playSong(song) {
+            if (!song) return;
+            
+            document.getElementById('playerTitle').textContent = song.name;
+            document.getElementById('playerArtist').textContent = song.artist;
+            document.getElementById('musicPlayer').style.display = 'block';
+            
+            // Reset progress
+            currentProgress = 0;
+            document.getElementById('progress').style.width = '0%';
+            
+            // Start playing
+            isPlaying = true;
+            document.getElementById('playIcon').className = 'fas fa-pause';
+            
+            // Simulate progress
+            if (progressInterval) clearInterval(progressInterval);
+            progressInterval = setInterval(() => {
+                if (isPlaying && currentProgress < 100) {
+                    currentProgress += 0.5;
+                    document.getElementById('progress').style.width = `${currentProgress}%`;
+                } else if (currentProgress >= 100) {
+                    // Song ended
+                    isPlaying = false;
+                    document.getElementById('playIcon').className = 'fas fa-play';
+                    clearInterval(progressInterval);
+                }
+            }, 100);
+        }
+
+        // Toggle play/pause
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                document.getElementById('playIcon').className = 'fas fa-pause';
+                
+                // Resume progress
+                if (progressInterval) clearInterval(progressInterval);
+                progressInterval = setInterval(() => {
+                    if (isPlaying && currentProgress < 100) {
+                        currentProgress += 0.5;
+                        document.getElementById('progress').style.width = `${currentProgress}%`;
+                    } else if (currentProgress >= 100) {
+                        // Song ended
+                        isPlaying = false;
+                        document.getElementById('playIcon').className = 'fas fa-play';
+                        clearInterval(progressInterval);
+                    }
+                }, 100);
+            } else {
+                document.getElementById('playIcon').className = 'fas fa-play';
+                clearInterval(progressInterval);
+            }
+        }
+
+        // Add song to playlist
+        function addToPlaylist(songName) {
+            const song = songs.find(s => s.name.toLowerCase() === songName.toLowerCase());
+            if (!song) return;
+            
+            // Check if song is already in playlist
+            if (playlist.some(item => item.name === song.name)) {
+                showToast("Song is already in your playlist!");
+                return;
+            }
+            
+            playlist.push(song);
+            updatePlaylistDisplay();
+            showToast("Song added to playlist!");
+            
+            // Show playlist section if it's hidden
+            document.getElementById('playlistSection').style.display = 'block';
+        }
+
+        // Update playlist display
+        function updatePlaylistDisplay() {
+            const playlistElement = document.getElementById('playlist');
+            
+            if (playlist.length === 0) {
+                playlistElement.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 2rem;">Your playlist is empty. Add songs to get started!</p>';
+                return;
+            }
+            
+            playlistElement.innerHTML = '';
+            
+            playlist.forEach((song, index) => {
+                const item = document.createElement('div');
+                item.className = 'playlist-item';
+                item.innerHTML = `
+                    <div class="playlist-item-index">${index + 1}</div>
+                    <div class="playlist-item-details">
+                        <h4>${song.name}</h4>
+                        <p>${song.artist} • ${song.genre}</p>
+                    </div>
+                    <div class="playlist-item-actions">
+                        <button class="playlist-action-btn play-from-playlist-btn" data-index="${index}">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="playlist-action-btn remove-from-playlist-btn" data-index="${index}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                playlistElement.appendChild(item);
+            });
+        }
+
+        // Remove song from playlist
+        function removeFromPlaylist(index) {
+            playlist.splice(index, 1);
+            updatePlaylistDisplay();
+            
+            // Hide playlist section if empty
+            if (playlist.length === 0) {
+                document.getElementById('playlistSection').style.display = 'none';
+            }
+        }
+
+        // Clear playlist
+        function clearPlaylist() {
+            playlist = [];
+            updatePlaylistDisplay();
+            document.getElementById('playlistSection').style.display = 'none';
+        }
+
+        // Play from playlist
+        function playFromPlaylist(index) {
+            if (index >= 0 && index < playlist.length) {
+                currentPlaylistIndex = index;
+                playSong(playlist[index]);
+            }
+        }
+
+        // Play next song in playlist
+        function playNextSong() {
+            if (playlist.length === 0) return;
+            
+            currentPlaylistIndex = (currentPlaylistIndex + 1) % playlist.length;
+            playSong(playlist[currentPlaylistIndex]);
+        }
+
+        // Play previous song in playlist
+        function playPreviousSong() {
+            if (playlist.length === 0) return;
+            
+            currentPlaylistIndex = (currentPlaylistIndex - 1 + playlist.length) % playlist.length;
+            playSong(playlist[currentPlaylistIndex]);
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // Export functions
+        function exportAsJson() {
+            const data = {
+                recommendations: Array.from(document.querySelectorAll('.song-item')).map(item => ({
+                    name: item.querySelector('h4').textContent,
+                    artist: item.querySelector('p').textContent.split(' • ')[0],
+                    similarity: parseFloat(item.querySelector('.similarity-score').textContent)
+                }))
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'beatmatch-recommendations.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast("Recommendations exported as JSON!");
+        }
+
+        function exportAsCsv() {
+            const items = Array.from(document.querySelectorAll('.song-item'));
+            let csv = 'Song,Artist,Similarity\n';
+            
+            items.forEach(item => {
+                const name = item.querySelector('h4').textContent;
+                const artist = item.querySelector('p').textContent.split(' • ')[0];
+                const similarity = item.querySelector('.similarity-score').textContent;
+                
+                csv += `"${name}","${artist}","${similarity}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'beatmatch-recommendations.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast("Recommendations exported as CSV!");
+        }
+
+        function exportAsText() {
+            const items = Array.from(document.querySelectorAll('.song-item'));
+            let text = 'BeatMatch Recommendations\n';
+            text += '========================\n\n';
+            
+            items.forEach((item, index) => {
+                const name = item.querySelector('h4').textContent;
+                const artist = item.querySelector('p').textContent.split(' • ')[0];
+                const similarity = item.querySelector('.similarity-score').textContent;
+                
+                text += `${index + 1}. ${name} by ${artist} (Similarity: ${similarity})\n`;
+            });
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'beatmatch-recommendations.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast("Recommendations exported as Text!");
+        }
+
+        // Share functions
+        function shareOnTwitter() {
+            const songName = document.getElementById('songTitle').textContent;
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(`Check out "${songName}" recommendations on BeatMatch!`);
+            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+        }
+
+        function shareOnFacebook() {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+        }
+
+        function shareOnWhatsapp() {
+            const songName = document.getElementById('songTitle').textContent;
+            const text = encodeURIComponent(`Check out "${songName}" recommendations on BeatMatch! ${window.location.href}`);
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showToast("Link copied to clipboard!");
+            });
+        }
+
+        // Spotify Integration Functions
+        function connectToSpotify() {
+            // In a real implementation, this would redirect to Spotify OAuth
+            // For demo purposes, we'll simulate a connection
+            spotifyConnected = true;
+            document.getElementById('connectSpotifyBtn').innerHTML = '<i class="fab fa-spotify"></i> Connected to Spotify';
+            document.getElementById('connectSpotifyBtn').style.background = '#1aa34a';
+            showToast("Successfully connected to Spotify!");
+            
+            // Show Spotify player for demo
+            embedSpotifyPlayer("Believer");
+        }
+
+        function embedSpotifyPlayer(songName) {
+            const trackId = spotifyTrackIds[songName] || spotifyTrackIds["Believer"];
+            const player = document.getElementById('spotifyPlayer');
+            player.innerHTML = `
+                <iframe src="https://open.spotify.com/embed/track/${trackId}" 
+                        width="100%" 
+                        height="80" 
+                        frameborder="0" 
+                        allowtransparency="true" 
+                        allow="encrypted-media">
+                </iframe>
+            `;
+        }
+
+        function findOnSpotify(songName) {
+            if (!spotifyConnected) {
+                showToast("Please connect to Spotify first!");
+                return;
+            }
+            
+            const song = songs.find(s => s.name.toLowerCase() === songName.toLowerCase());
+            if (song) {
+                embedSpotifyPlayer(song.name);
+                showToast(`Now playing "${song.name}" on Spotify!`);
+            }
+        }
+
+        function searchSpotify(query) {
+            if (!spotifyConnected) {
+                showToast("Please connect to Spotify first!");
+                return;
+            }
+            
+            // In a real implementation, this would call the Spotify API
+            // For demo, we'll show some mock results
+            const resultsContainer = document.getElementById('spotifyResults');
+            resultsContainer.innerHTML = '';
+            
+            // Filter songs that match the query
+            const matchingSongs = songs.filter(song => 
+                song.name.toLowerCase().includes(query.toLowerCase()) || 
+                song.artist.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            if (matchingSongs.length === 0) {
+                resultsContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">No results found</p>';
+                return;
+            }
+            
+            matchingSongs.forEach(song => {
+                const trackElement = document.createElement('div');
+                trackElement.className = 'spotify-track';
+                trackElement.innerHTML = `
+                    <div style="background: linear-gradient(45deg, var(--primary), var(--secondary)); width: 100%; height: 120px; border-radius: 5px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+                        <i class="fas fa-music" style="font-size: 2rem;"></i>
+                    </div>
+                    <h4>${song.name}</h4>
+                    <p>${song.artist}</p>
+                    <button class="action-btn" style="margin-top: 0.5rem;" data-song="${song.name}">
+                        <i class="fab fa-spotify"></i> Play on Spotify
+                    </button>
+                `;
+                
+                trackElement.addEventListener('click', (e) => {
+                    if (e.target.closest('.action-btn')) {
+                        findOnSpotify(song.name);
+                    } else {
+                        recommend(song.name);
+                        document.getElementById('searchInput').value = song.name;
+                    }
+                });
+                
+                resultsContainer.appendChild(trackElement);
+            });
+        }
+
+        function savePlaylistToSpotify() {
+            if (!spotifyConnected) {
+                showToast("Please connect to Spotify first!");
+                return;
+            }
+            
+            if (playlist.length === 0) {
+                showToast("Your playlist is empty!");
+                return;
+            }
+            
+            // In a real implementation, this would call the Spotify API to create a playlist
+            // For demo, we'll just show a success message
+            showToast("Playlist saved to Spotify!");
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            createFloatingElements();
+            populateSongGrid();
+            
+            // Search button event
+            document.getElementById('searchBtn').addEventListener('click', () => {
+                const query = document.getElementById('searchInput').value.trim();
+                if (query) {
+                    recommend(query);
+                }
+            });
+            
+            // Enter key event for search
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('searchBtn').click();
+                }
+            });
+            
+            // Play song button
+            document.getElementById('playSongBtn').addEventListener('click', () => {
+                playSong(currentSong);
+            });
+            
+            // Add to playlist button
+            document.getElementById('addToPlaylistBtn').addEventListener('click', () => {
+                if (currentSong) {
+                    addToPlaylist(currentSong.name);
+                }
+            });
+            
+            // Find on Spotify button
+            document.getElementById('findOnSpotifyBtn').addEventListener('click', () => {
+                if (currentSong) {
+                    findOnSpotify(currentSong.name);
+                }
+            });
+            
+            // Player controls
+            document.getElementById('playPauseBtn').addEventListener('click', togglePlayPause);
+            document.getElementById('closePlayerBtn').addEventListener('click', () => {
+                document.getElementById('musicPlayer').style.display = 'none';
+                isPlaying = false;
+                clearInterval(progressInterval);
+            });
+            document.getElementById('prevBtn').addEventListener('click', playPreviousSong);
+            document.getElementById('nextBtn').addEventListener('click', playNextSong);
+            
+            // Progress bar click
+            document.getElementById('progressBar').addEventListener('click', (e) => {
+                const rect = e.target.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                currentProgress = percent * 100;
+                document.getElementById('progress').style.width = `${currentProgress}%`;
+            });
+            
+            // Playlist controls
+            document.getElementById('clearPlaylistBtn').addEventListener('click', clearPlaylist);
+            document.getElementById('playPlaylistBtn').addEventListener('click', () => {
+                if (playlist.length > 0) {
+                    currentPlaylistIndex = 0;
+                    playSong(playlist[0]);
+                }
+            });
+            document.getElementById('saveToSpotifyBtn').addEventListener('click', savePlaylistToSpotify);
+            
+            // Export buttons
+            document.getElementById('exportJson').addEventListener('click', exportAsJson);
+            document.getElementById('exportCsv').addEventListener('click', exportAsCsv);
+            document.getElementById('exportText').addEventListener('click', exportAsText);
+            
+            // Share buttons
+            document.getElementById('shareTwitter').addEventListener('click', shareOnTwitter);
+            document.getElementById('shareFacebook').addEventListener('click', shareOnFacebook);
+            document.getElementById('shareWhatsapp').addEventListener('click', shareOnWhatsapp);
+            document.getElementById('shareLink').addEventListener('click', copyLink);
+            
+            // Spotify integration
+            document.getElementById('connectSpotifyBtn').addEventListener('click', connectToSpotify);
+            document.getElementById('spotifySearchBtn').addEventListener('click', () => {
+                const query = document.getElementById('spotifySearchInput').value.trim();
+                if (query) {
+                    searchSpotify(query);
+                }
+            });
+            
+            // Spotify search enter key
+            document.getElementById('spotifySearchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('spotifySearchBtn').click();
+                }
+            });
+            
+            // Event delegation for dynamic elements
+            document.addEventListener('click', (e) => {
+                // Play song from grid
+                if (e.target.closest('.play-song-btn')) {
+                    const songName = e.target.closest('.play-song-btn').dataset.song;
+                    const song = songs.find(s => s.name.toLowerCase() === songName.toLowerCase());
+                    if (song) playSong(song);
+                }
+                
+                // Add to playlist from grid
+                if (e.target.closest('.add-to-playlist-btn')) {
+                    const songName = e.target.closest('.add-to-playlist-btn').dataset.song;
+                    addToPlaylist(songName);
+                }
+                
+                // Find on Spotify from grid
+                if (e.target.closest('.find-on-spotify-btn')) {
+                    const songName = e.target.closest('.find-on-spotify-btn').dataset.song;
+                    findOnSpotify(songName);
+                }
+                
+                // Play from playlist
+                if (e.target.closest('.play-from-playlist-btn')) {
+                    const index = parseInt(e.target.closest('.play-from-playlist-btn').dataset.index);
+                    playFromPlaylist(index);
+                }
+                
+                // Remove from playlist
+                if (e.target.closest('.remove-from-playlist-btn')) {
+                    const index = parseInt(e.target.closest('.remove-from-playlist-btn').dataset.index);
+                    removeFromPlaylist(index);
+                }
+            });
+            
+            // Initial recommendation
+            recommend("Believer");
+            document.getElementById('searchInput').value = "Believer";
+        });
+    </script>
+</body>
+</html>
